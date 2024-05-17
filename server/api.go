@@ -6,16 +6,28 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"log"
 	"metrics/server/pb/pv"
 	"metrics/server/version"
 	"time"
 )
 
+// Export is a gRPC method of the MetricsService service that handles the exporting of metrics data.
+//
+// This method receives an ExportMetricsServiceRequest containing metrics data to be exported.
+// It processes the received metrics data, checks for any errors, and generates an appropriate response.
+// If there are errors in the received data, it returns a response with details about the errors.
+// Otherwise, it returns a response indicating successful processing.
+//
+// Parameters:
+// - ctx: The context.Context for the RPC call.
+// - req: The ExportMetricsServiceRequest containing the metrics data to be exported.
+//
+// Returns:
+// - *pb.ExportMetricsServiceResponse: The response containing the result of the export operation.
+// - error: An error, if any occurred during processing.
 func (s *server) Export(ctx context.Context,
 	req *pb.ExportMetricsServiceRequest) (*pb.ExportMetricsServiceResponse, error) {
-	logger.Info("Received request: %v", zap.Any("request", req))
-	//log.Printf("Received request: %v", req)
+	s.logger.Info("Received request", zap.Any("request", req))
 
 	hasErrors := false
 	var errorMessage string
@@ -40,7 +52,6 @@ func (s *server) Export(ctx context.Context,
 
 	response := &pb.ExportMetricsServiceResponse{}
 	if hasErrors {
-		log.Printf("hasErrors: %v", hasErrors)
 		// Build response with errors
 		response = &pb.ExportMetricsServiceResponse{
 			PartialSuccess: &pb.ExportMetricsPartialSuccess{
@@ -91,8 +102,11 @@ func (s *server) addToErrorCache(req *pb.ExportMetricsServiceRequest) {
 	})
 }
 
+// GetVersion retrieves the current version information.
+// This method takes no parameters and returns a VersionResponse
+// message containing version information such as the build timestamp
+// and Git commit SHA.
 func (s *server) GetVersion(context.Context, *emptypb.Empty) (*pv.VersionResponse, error) {
-	log.Printf("Received request:")
 	commitSha, timestamp := version.BuildVersion()
 	return &pv.VersionResponse{
 		BuildTimestamp: timestamp,

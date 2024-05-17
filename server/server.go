@@ -19,10 +19,8 @@ import (
 )
 
 const (
-	pathOfConfig = "./server/config.yaml"
+	pathOfConfigFile = "./server/config.yaml"
 )
-
-var logger *zap.Logger
 
 type cachedRequest struct {
 	Request   *pb.ExportMetricsServiceRequest
@@ -35,6 +33,7 @@ type server struct {
 	lastSuccessfulRequests []*cachedRequest
 	lastErrorRequests      []*cachedRequest
 	cacheMutex             sync.Mutex
+	logger                 *zap.Logger
 }
 
 type LoggerConfig struct {
@@ -87,7 +86,7 @@ func initLogger(config LoggerConfig) (*zap.Logger, error) {
 
 func main() {
 	// Initialize logger based on configuration
-	loggerConfig, _ := loadConfig(pathOfConfig)
+	loggerConfig, _ := loadConfig(pathOfConfigFile)
 	logger, err := initLogger(loggerConfig)
 	if err != nil {
 		panic(err)
@@ -99,6 +98,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
+
+	// load certs
 	caPem, err := ioutil.ReadFile("certs/ca.crt")
 	// create cert pool and append ca's cert
 	certPool := x509.NewCertPool()
@@ -123,10 +124,14 @@ func main() {
 		grpc.Creds(tlsCredentials),
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
+		grpc.UnaryInterceptor(UnaryInterceptor(logger)),
 	)
-
-	pb.RegisterMetricsServiceServer(s, &server{})
-	pv.RegisterVersionServiceServer(s, &server{})
+	// Initialize the server struct with the logger
+	srv := &server{
+		logger: logger,
+	}
+	pb.RegisterMetricsServiceServer(s, srv)
+	pv.RegisterVersionServiceServer(s, srv)
 	reflection.Register(s)
 
 	log.Printf("Server is listening on port 8080...")

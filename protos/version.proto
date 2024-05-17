@@ -5,13 +5,27 @@ option go_package = "/pv";
 
 import "google/protobuf/empty.proto";
 
-// The version service definition.
+// VersionService defines the version service that provides version information of the server.
+// This service allows clients to retrieve version-related information, which can be useful for debugging, monitoring, and ensuring compatibility.
+// The service includes one method:
+// - GetVersion: Retrieves the current version information.
 service VersionService {
+  // GetVersion retrieves the current version information.
+  // This method takes no parameters and returns a VersionResponse message containing version information such as the build timestamp and Git commit SHA.
   rpc GetVersion (google.protobuf.Empty) returns (VersionResponse);
 }
 
-// The response message containing the version information.
+// VersionResponse is the response message containing the version information.
+// This message includes the build timestamp and the Git commit SHA of the current version.
+// When new fields are added to this message, ensure that the corresponding service methods and clients are updated as well.
 message VersionResponse {
+  // The build timestamp.
+  // This field represents the timestamp of the build, indicating when the version was built.
+  // It is represented as an int64 and returns a unix EPOCH.
   int64 build_timestamp = 1;
+
+  // The Git commit SHA.
+  // This field holds the SHA hash of the Git commit, indicating the specific source code version.
+  // It is represented as a string.
   string git_commit_sha = 2;
 }
