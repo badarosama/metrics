@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package main;
+option go_package = "/pv";
+
+import "google/protobuf/empty.proto";
+
+// The version service definition.
+service VersionService {
+  rpc GetVersion (google.protobuf.Empty) returns (VersionResponse);
+}
+
+// The response message containing the version information.
+message VersionResponse {
+  int32 build_time = 1;
+  string git_commit = 2;
+}

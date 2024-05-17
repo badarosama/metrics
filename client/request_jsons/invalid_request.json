@@ -1,0 +1,23 @@
+{
+  "resourceMetrics": [
+    {
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "scope-name"
+          },
+          "metrics": [
+            {
+              "name": "invalid_metric",
+              "description": "Description of the metric",
+              "unit": "unit",
+              "gauge": {}
+            }
+          ],
+          "schemaUrl": "schema_url"
+        }
+      ],
+      "schemaUrl": "schema_url"
+    }
+  ]
+}

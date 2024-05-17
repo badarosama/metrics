@@ -1,0 +1,48 @@
+{
+  "ResourceMetrics": [
+    {
+      "Resource": {
+        "Attributes": [
+          {
+            "Key": "service.name",
+            "Value": {
+              "Value": {
+                "StringValue": "my-service"
+              }
+            }
+          }
+        ],
+        "DroppedAttributesCount": 0
+      },
+      "ScopeMetrics": [
+        {
+          "Scope": {
+            "Name": "scope-name"
+          },
+          "Metrics": [
+            {
+              "Name": "metric_name",
+              "Description": "Description of the metric",
+              "Unit": "unit",
+              "Data": {
+                "Gauge": {}
+              },
+              "Metadata": [
+                {
+                  "Key": "metadata_key",
+                  "Value": {
+                    "Value": {
+                      "StringValue": "metadata_value"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "SchemaUrl": "schema_url"
+        }
+      ],
+      "SchemaUrl": "schema_url"
+    }
+  ]
+}
