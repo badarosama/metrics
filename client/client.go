@@ -4,10 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
+	"fmt"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
-	v11 "go.opentelemetry.io/proto/otlp/common/v1"
-	v1 "go.opentelemetry.io/proto/otlp/metrics/v1"
-	v12 "go.opentelemetry.io/proto/otlp/resource/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -18,8 +17,8 @@ import (
 )
 
 const (
-	numTotalRequests      = 1
-	numConcurrentRequests = 1
+	numTotalRequests      = 100
+	numConcurrentRequests = 10
 	serverAddress         = "localhost:8080"
 )
 
@@ -31,99 +30,21 @@ func getVersion(client pv.VersionServiceClient) {
 	}
 }
 
-func getGoodRequest() *pb.ExportMetricsServiceRequest {
-	req := &pb.ExportMetricsServiceRequest{
-		ResourceMetrics: []*v1.ResourceMetrics{
-			{
-				Resource: &v12.Resource{
-					Attributes: []*v11.KeyValue{
-						{
-							Key:   "service.name",
-							Value: &v11.AnyValue{Value: &v11.AnyValue_StringValue{StringValue: "my-service"}},
-						},
-					},
-					DroppedAttributesCount: 0,
-				},
-				ScopeMetrics: []*v1.ScopeMetrics{
-					{
-						Scope: &v11.InstrumentationScope{
-							Name: "scope-name",
-						},
-						Metrics: []*v1.Metric{
-							{
-								Name:        "metric_name",
-								Description: "Description of the metric",
-								Unit:        "unit",
-								Data: &v1.Metric_Gauge{
-									Gauge: &v1.Gauge{},
-								},
-								Metadata: []*v11.KeyValue{
-									{
-										Key:   "metadata_key",
-										Value: &v11.AnyValue{Value: &v11.AnyValue_StringValue{StringValue: "metadata_value"}},
-									},
-								},
-							},
-						},
-						SchemaUrl: "schema_url",
-					},
-				},
-				SchemaUrl: "schema_url",
-			},
-		},
-	}
-	return req
-}
-func getInvalidRequest() *pb.ExportMetricsServiceRequest {
-	req := &pb.ExportMetricsServiceRequest{
-		ResourceMetrics: []*v1.ResourceMetrics{
-			{
-				Resource: &v12.Resource{
-					Attributes: []*v11.KeyValue{
-						{
-							Key:   "service.name",
-							Value: &v11.AnyValue{Value: &v11.AnyValue_BoolValue{BoolValue: true}}, // Invalid type
-						},
-					},
-					DroppedAttributesCount: 0,
-				},
-				ScopeMetrics: []*v1.ScopeMetrics{
-					{
-						Scope: &v11.InstrumentationScope{
-							Name: "scope-name",
-						},
-						Metrics: []*v1.Metric{
-							{
-								Name:        "metric_name",
-								Description: "Description of the metric",
-								Unit:        "unit",
-								Data: &v1.Metric_Gauge{
-									Gauge: &v1.Gauge{},
-								},
-								Metadata: []*v11.KeyValue{
-									{
-										Key:   "metadata_key",
-										Value: &v11.AnyValue{Value: &v11.AnyValue_StringValue{StringValue: "metadata_value"}},
-									},
-								},
-							},
-						},
-						SchemaUrl: "schema_url",
-					},
-				},
-				SchemaUrl: "schema_url",
-			},
-		},
-	}
-
-	return req
-}
-
 func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJson string) {
 	defer wg.Done()
+	log.Printf("valid json: %v\n", requestJson)
+	// Initialize a new ExportMetricsServiceRequest
+	req := &pb.ExportMetricsServiceRequest{}
 
+	// Unmarshal JSON into the ExportMetricsServiceRequest protobuf struct
+	if err := json.Unmarshal([]byte(requestJson), req); err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	log.Printf("request json: %v\n", *req)
 	for i := 0; i < numTotalRequests/numConcurrentRequests; i++ {
-		req := getGoodRequest()
+
 		resp, err := client.Export(context.Background(), req)
 		log.Printf("Response: %v", resp)
 		if err != nil {
@@ -196,18 +117,18 @@ func main() {
 		go sendRequests(client, &wg, validRequest)
 	}
 
-	// Send invalid requests
-	for _, invalidRequestFile := range invalidRequestFiles {
-		invalidRequest, err := readJSONFile(invalidRequestFile)
-
-		if err != nil {
-			log.Fatalf("Failed to read invalid request file (%s): %v", invalidRequestFile, err)
-		}
-
-		for i := 0; i < numConcurrentRequests; i++ {
-			go sendRequests(client, &wg, invalidRequest)
-		}
-	}
+	//// Send invalid requests
+	//for _, invalidRequestFile := range invalidRequestFiles {
+	//	invalidRequest, err := readJSONFile(invalidRequestFile)
+	//
+	//	if err != nil {
+	//		log.Fatalf("Failed to read invalid request file (%s): %v", invalidRequestFile, err)
+	//	}
+	//
+	//	for i := 0; i < numConcurrentRequests; i++ {
+	//		go sendRequests(client, &wg, invalidRequest)
+	//	}
+	//}
 
 	wg.Wait()
 }

@@ -12,6 +12,6 @@ service VersionService {
 
 // The response message containing the version information.
 message VersionResponse {
-  int32 build_time = 1;
-  string git_commit = 2;
+  int64 build_timestamp = 1;
+  string git_commit_sha = 2;
 }

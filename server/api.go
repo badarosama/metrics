@@ -3,15 +3,19 @@ package main
 import (
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	v1 "go.opentelemetry.io/proto/otlp/metrics/v1"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"metrics/server/pb/pv"
+	"metrics/server/version"
+	"time"
 )
 
 func (s *server) Export(ctx context.Context,
 	req *pb.ExportMetricsServiceRequest) (*pb.ExportMetricsServiceResponse, error) {
-	log.Printf("Received request: %v", req)
+	logger.Info("Received request: %v", zap.Any("request", req))
+	//log.Printf("Received request: %v", req)
 
 	hasErrors := false
 	var errorMessage string
@@ -44,15 +48,54 @@ func (s *server) Export(ctx context.Context,
 				ErrorMessage:       errorMessage,
 			},
 		}
+
+		// Add request to lastErrorRequests cache
+		s.addToErrorCache(req)
+	} else {
+		// Add request to lastSuccessfulRequests cache
+		s.addToSuccessCache(req)
 	}
 
 	return response, nil
 }
 
+// addToSuccessCache adds a successful request to the lastSuccessfulRequests cache.
+func (s *server) addToSuccessCache(req *pb.ExportMetricsServiceRequest) {
+	s.cacheMutex.Lock()
+	defer s.cacheMutex.Unlock()
+
+	if len(s.lastSuccessfulRequests) >= 10 {
+		// Remove oldest request
+		s.lastSuccessfulRequests = s.lastSuccessfulRequests[1:]
+	}
+	// Append new request with timestamp
+	s.lastSuccessfulRequests = append(s.lastSuccessfulRequests, &cachedRequest{
+		Request:   req,
+		Timestamp: time.Now(),
+	})
+}
+
+// addToErrorCache adds an error request to the lastErrorRequests cache.
+func (s *server) addToErrorCache(req *pb.ExportMetricsServiceRequest) {
+	s.cacheMutex.Lock()
+	defer s.cacheMutex.Unlock()
+
+	if len(s.lastErrorRequests) >= 10 {
+		// Remove oldest request
+		s.lastErrorRequests = s.lastErrorRequests[1:]
+	}
+	// Append new request with timestamp
+	s.lastErrorRequests = append(s.lastErrorRequests, &cachedRequest{
+		Request:   req,
+		Timestamp: time.Now(),
+	})
+}
+
 func (s *server) GetVersion(context.Context, *emptypb.Empty) (*pv.VersionResponse, error) {
 	log.Printf("Received request:")
+	commitSha, timestamp := version.BuildVersion()
 	return &pv.VersionResponse{
-		BuildTime: int32(buildTime),
-		GitCommit: gitCommit,
+		BuildTimestamp: timestamp,
+		GitCommitSha:   commitSha,
 	}, nil
 }

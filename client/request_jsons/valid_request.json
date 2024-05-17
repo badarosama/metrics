@@ -1,48 +1,23 @@
 {
-  "ResourceMetrics": [
+  "resource_metrics": [
     {
-      "Resource": {
-        "Attributes": [
-          {
-            "Key": "service.name",
-            "Value": {
-              "Value": {
-                "StringValue": "my-service"
-              }
-            }
-          }
-        ],
-        "DroppedAttributesCount": 0
-      },
-      "ScopeMetrics": [
+      "scope_metrics": [
         {
-          "Scope": {
-            "Name": "scope-name"
+          "scope": {
+            "name": "scope-name",
+            "version": "version"
           },
-          "Metrics": [
+          "metrics": [
             {
-              "Name": "metric_name",
-              "Description": "Description of the metric",
-              "Unit": "unit",
-              "Data": {
-                "Gauge": {}
-              },
-              "Metadata": [
-                {
-                  "Key": "metadata_key",
-                  "Value": {
-                    "Value": {
-                      "StringValue": "metadata_value"
-                    }
-                  }
-                }
-              ]
+              "name": "metric_name",
+              "description": "Description of the metric",
+              "unit": "unit"
             }
           ],
-          "SchemaUrl": "schema_url"
+          "schema_url": "schema_url"
         }
       ],
-      "SchemaUrl": "schema_url"
+      "schema_url": "schema_url"
     }
   ]
 }

@@ -3,7 +3,10 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/spf13/viper"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -11,22 +14,31 @@ import (
 	"log"
 	"metrics/server/pb/pv"
 	"net"
-	"os"
-	"os/exec"
-	"path/filepath"
+	"sync"
 	"time"
-
-	"google.golang.org/grpc"
 )
 
-var (
-	buildTime int
-	gitCommit string
+const (
+	pathOfConfig = "./server/config.yaml"
 )
+
+var logger *zap.Logger
+
+type cachedRequest struct {
+	Request   *pb.ExportMetricsServiceRequest
+	Timestamp time.Time
+}
 
 type server struct {
 	pb.UnimplementedMetricsServiceServer
 	pv.UnimplementedVersionServiceServer
+	lastSuccessfulRequests []*cachedRequest
+	lastErrorRequests      []*cachedRequest
+	cacheMutex             sync.Mutex
+}
+
+type LoggerConfig struct {
+	Level string `mapstructure:"level"`
 }
 
 var kaep = keepalive.EnforcementPolicy{
@@ -42,13 +54,47 @@ var kasp = keepalive.ServerParameters{
 	Timeout:               1 * time.Second,  // Wait 1 second for the ping ack before assuming the connection is dead
 }
 
-// init initializes the build time and git commit variables.
-func init() {
-	buildTime = time.Now().UTC().Second()
-	gitCommit, _ = getGitCommit()
+func loadConfig(path string) (LoggerConfig, error) {
+	// Load configuration from file
+	viper.SetConfigFile(path)
+	if err := viper.ReadInConfig(); err != nil {
+		panic(err)
+	}
+	// Unmarshal configuration into struct
+	var loggerConfig LoggerConfig
+	if err := viper.Unmarshal(&loggerConfig); err != nil {
+		panic(err)
+	}
+
+	return loggerConfig, nil
+}
+
+func initLogger(config LoggerConfig) (*zap.Logger, error) {
+	var level zap.AtomicLevel
+	if err := level.UnmarshalText([]byte(config.Level)); err != nil {
+		return nil, err
+	}
+
+	cfg := zap.NewProductionConfig()
+	cfg.Level = level
+	logger, err := cfg.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return logger, nil
 }
 
 func main() {
+	// Initialize logger based on configuration
+	loggerConfig, _ := loadConfig(pathOfConfig)
+	logger, err := initLogger(loggerConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	defer logger.Sync()
+
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -87,34 +133,4 @@ func main() {
 	if err := s.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
-}
-
-// getGitCommit retrieves the git commit hash of the current HEAD.
-func getGitCommit() (string, error) {
-	// Run git command to get the commit hash
-	cmd := exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = getModuleRoot()
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return string(output), nil
-}
-
-// getModuleRoot retrieves the root directory of the Go module.
-func getModuleRoot() string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	for !isModuleRoot(cwd) {
-		cwd = filepath.Dir(cwd)
-	}
-	return cwd
-}
-
-// isModuleRoot checks if the current directory is the root of the Go module.
-func isModuleRoot(dir string) bool {
-	_, err := os.Stat(filepath.Join(dir, "go.mod"))
-	return err == nil
 }
