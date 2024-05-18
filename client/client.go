@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	numTotalRequests      = 1
+	numTotalRequests      = 1000000
 	numConcurrentRequests = 1
 	serverAddress         = "localhost:8080"
 )
@@ -32,7 +32,7 @@ func getVersion(client pv.VersionServiceClient) {
 
 func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJson string) {
 	defer wg.Done()
-	log.Printf("valid json: %v\n", requestJson)
+	//log.Printf("valid json: %v\n", requestJson)
 	// Initialize a new ExportMetricsServiceRequest
 	req := &pb.ExportMetricsServiceRequest{}
 
@@ -42,7 +42,7 @@ func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJso
 		return
 	}
 
-	log.Printf("request json: %v\n", *req)
+	//log.Printf("request json: %v\n", *req)
 	for i := 0; i < numTotalRequests/numConcurrentRequests; i++ {
 
 		resp, err := client.Export(context.Background(), req)

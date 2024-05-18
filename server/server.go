@@ -85,6 +85,7 @@ func initLogger(config LoggerConfig) (*zap.Logger, error) {
 }
 
 func main() {
+
 	// Initialize logger based on configuration
 	loggerConfig, _ := loadConfig(pathOfConfigFile)
 	logger, err := initLogger(loggerConfig)

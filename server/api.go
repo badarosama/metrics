@@ -8,7 +8,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"metrics/server/pb/pv"
 	"metrics/server/version"
-	"time"
 )
 
 // Export is a gRPC method of the MetricsService service that handles the exporting of metrics data.
@@ -60,46 +59,9 @@ func (s *server) Export(ctx context.Context,
 			},
 		}
 
-		// Add request to lastErrorRequests cache
-		s.addToErrorCache(req)
-	} else {
-		// Add request to lastSuccessfulRequests cache
-		s.addToSuccessCache(req)
 	}
 
 	return response, nil
-}
-
-// addToSuccessCache adds a successful request to the lastSuccessfulRequests cache.
-func (s *server) addToSuccessCache(req *pb.ExportMetricsServiceRequest) {
-	s.cacheMutex.Lock()
-	defer s.cacheMutex.Unlock()
-
-	if len(s.lastSuccessfulRequests) >= 10 {
-		// Remove oldest request
-		s.lastSuccessfulRequests = s.lastSuccessfulRequests[1:]
-	}
-	// Append new request with timestamp
-	s.lastSuccessfulRequests = append(s.lastSuccessfulRequests, &cachedRequest{
-		Request:   req,
-		Timestamp: time.Now(),
-	})
-}
-
-// addToErrorCache adds an error request to the lastErrorRequests cache.
-func (s *server) addToErrorCache(req *pb.ExportMetricsServiceRequest) {
-	s.cacheMutex.Lock()
-	defer s.cacheMutex.Unlock()
-
-	if len(s.lastErrorRequests) >= 10 {
-		// Remove oldest request
-		s.lastErrorRequests = s.lastErrorRequests[1:]
-	}
-	// Append new request with timestamp
-	s.lastErrorRequests = append(s.lastErrorRequests, &cachedRequest{
-		Request:   req,
-		Timestamp: time.Now(),
-	})
 }
 
 // GetVersion retrieves the current version information.
