@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	numTotalRequests      = 1000000
+	numTotalRequests      = 100
 	numConcurrentRequests = 1
 	serverAddress         = "localhost:8080"
 )

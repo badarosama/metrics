@@ -22,16 +22,11 @@ const (
 	pathOfConfigFile = "./server/config.yaml"
 )
 
-type cachedRequest struct {
-	Request   *pb.ExportMetricsServiceRequest
-	Timestamp time.Time
-}
-
 type server struct {
 	pb.UnimplementedMetricsServiceServer
 	pv.UnimplementedVersionServiceServer
-	lastSuccessfulRequests *CircularQueue
-	lastErrorRequests      *CircularQueue
+	lastSuccessfulRequests *LinkedList
+	lastErrorRequests      *LinkedList
 	cacheMutex             sync.Mutex
 	logger                 *zap.Logger
 }
@@ -129,8 +124,8 @@ func main() {
 	// Initialize the server struct with the logger
 	srv := &server{
 		logger:                 logger,
-		lastErrorRequests:      NewCircularQueue(10),
-		lastSuccessfulRequests: NewCircularQueue(10),
+		lastErrorRequests:      NewLinkedList(10),
+		lastSuccessfulRequests: NewLinkedList(10),
 	}
 	pb.RegisterMetricsServiceServer(s, srv)
 	pv.RegisterVersionServiceServer(s, srv)
