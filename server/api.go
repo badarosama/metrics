@@ -60,12 +60,12 @@ func (s *server) Export(ctx context.Context,
 			},
 		}
 
-		s.lastErrorRequests.Append(CachedRequest{
+		s.lastErrorRequests.Enqueue(CachedRequest{
 			Request:   req,
 			Timestamp: time.Now(),
 		})
 	} else {
-		s.lastSuccessfulRequests.Append(CachedRequest{
+		s.lastSuccessfulRequests.Enqueue(CachedRequest{
 			Request:   req,
 			Timestamp: time.Now(),
 		})

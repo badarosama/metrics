@@ -11,60 +11,29 @@ type CachedRequest struct {
 	Timestamp time.Time
 }
 
-type Node struct {
-	value CachedRequest
-	next  *Node
-	prev  *Node
+type CircularQueue struct {
+	queue      []CachedRequest
+	size       int
+	head, tail int
+	mutex      sync.Mutex
 }
 
-type LinkedList struct {
-	head  *Node
-	tail  *Node
-	size  int
-	cap   int
-	mutex sync.Mutex
-}
-
-func NewLinkedList(cap int) *LinkedList {
-	return &LinkedList{
-		cap: cap,
+func NewCircularQueue(size int) *CircularQueue {
+	return &CircularQueue{
+		queue: make([]CachedRequest, size),
+		size:  size,
 	}
 }
 
-func (l *LinkedList) Append(value CachedRequest) {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+func (q *CircularQueue) Enqueue(request CachedRequest) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 
-	newNode := &Node{value: value}
-
-	if l.tail != nil {
-		l.tail.next = newNode
-		newNode.prev = l.tail
-		l.tail = newNode
-	} else {
-		l.head = newNode
-		l.tail = newNode
+	if (q.tail+1)%q.size == q.head {
+		// Queue is full, dequeue one element
+		q.head = (q.head + 1) % q.size
 	}
 
-	if l.size == l.cap {
-		l.head = l.head.next
-		if l.head != nil {
-			l.head.prev = nil
-		}
-	} else {
-		l.size++
-	}
-}
-
-func (l *LinkedList) GetAll() []CachedRequest {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	var requests []CachedRequest
-	current := l.head
-	for current != nil {
-		requests = append(requests, current.value)
-		current = current.next
-	}
-	return requests
+	q.queue[q.tail] = request
+	q.tail = (q.tail + 1) % q.size
 }
