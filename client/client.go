@@ -17,10 +17,14 @@ import (
 )
 
 const (
-	numTotalRequests      = 100
+	numTotalRequests      = 1000000
 	numConcurrentRequests = 1
 	serverAddress         = "localhost:8080"
 )
+
+var totalRequests = 0
+var totalFailedRequests = 0
+var totalSuccessfulRequests = 0
 
 func getVersion(client pv.VersionServiceClient) {
 	resp, err := client.GetVersion(context.Background(), &emptypb.Empty{})
@@ -32,10 +36,8 @@ func getVersion(client pv.VersionServiceClient) {
 
 func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJson string) {
 	defer wg.Done()
-	//log.Printf("valid json: %v\n", requestJson)
-	// Initialize a new ExportMetricsServiceRequest
-	req := &pb.ExportMetricsServiceRequest{}
 
+	req := &pb.ExportMetricsServiceRequest{}
 	// Unmarshal JSON into the ExportMetricsServiceRequest protobuf struct
 	if err := json.Unmarshal([]byte(requestJson), req); err != nil {
 		fmt.Println("Error:", err)
@@ -44,7 +46,6 @@ func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJso
 
 	//log.Printf("request json: %v\n", *req)
 	for i := 0; i < numTotalRequests/numConcurrentRequests; i++ {
-
 		resp, err := client.Export(context.Background(), req)
 		log.Printf("Response: %v", resp)
 		if err != nil {
@@ -131,4 +132,5 @@ func main() {
 	//}
 
 	wg.Wait()
+	println("Execution finished %s, %s, %s", totalRequests, totalSuccessfulRequests, totalFailedRequests)
 }

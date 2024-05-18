@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"go.uber.org/zap"
@@ -14,6 +16,7 @@ import (
 	"log"
 	"metrics/server/pb/pv"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -79,6 +82,29 @@ func initLogger(config LoggerConfig) (*zap.Logger, error) {
 	return logger, nil
 }
 
+var (
+	requestCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "grpc_request_count",
+			Help: "Total number of gRPC requests",
+		},
+		[]string{"method", "client", "code"},
+	)
+	requestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "grpc_request_duration_seconds",
+			Help:    "Duration of gRPC requests in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method"},
+	)
+)
+
+func init() {
+	// Register the metrics with Prometheus's default registry
+	prometheus.MustRegister(requestCount, requestDuration)
+}
+
 func main() {
 	// Initialize logger based on configuration
 	loggerConfig, _ := loadConfig(pathOfConfigFile)
@@ -119,7 +145,8 @@ func main() {
 		grpc.Creds(tlsCredentials),
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
-		grpc.UnaryInterceptor(UnaryInterceptor(logger)),
+		//grpc.UnaryInterceptor(UnaryInterceptor(logger)),
+		grpc.UnaryInterceptor(UnaryInterceptorPrometheus),
 	)
 	// Initialize the server struct with the logger
 	srv := &server{
@@ -130,6 +157,11 @@ func main() {
 	pb.RegisterMetricsServiceServer(s, srv)
 	pv.RegisterVersionServiceServer(s, srv)
 	reflection.Register(s)
+
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		http.ListenAndServe(":9091", nil)
+	}()
 
 	log.Printf("Server is listening on port 8080...")
 	if err := s.Serve(listener); err != nil {
