@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"metrics/server/pb/pv"
 	"metrics/server/version"
+	"time"
 )
 
 // Export is a gRPC method of the MetricsService service that handles the exporting of metrics data.
@@ -59,6 +60,15 @@ func (s *server) Export(ctx context.Context,
 			},
 		}
 
+		s.lastErrorRequests.Enqueue(CachedRequest{
+			Request:   req,
+			Timestamp: time.Now(),
+		})
+	} else {
+		s.lastSuccessfulRequests.Enqueue(CachedRequest{
+			Request:   req,
+			Timestamp: time.Now(),
+		})
 	}
 
 	return response, nil

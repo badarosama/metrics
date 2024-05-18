@@ -30,8 +30,8 @@ type cachedRequest struct {
 type server struct {
 	pb.UnimplementedMetricsServiceServer
 	pv.UnimplementedVersionServiceServer
-	lastSuccessfulRequests []*cachedRequest
-	lastErrorRequests      []*cachedRequest
+	lastSuccessfulRequests *CircularQueue
+	lastErrorRequests      *CircularQueue
 	cacheMutex             sync.Mutex
 	logger                 *zap.Logger
 }
@@ -85,7 +85,6 @@ func initLogger(config LoggerConfig) (*zap.Logger, error) {
 }
 
 func main() {
-
 	// Initialize logger based on configuration
 	loggerConfig, _ := loadConfig(pathOfConfigFile)
 	logger, err := initLogger(loggerConfig)
@@ -129,7 +128,9 @@ func main() {
 	)
 	// Initialize the server struct with the logger
 	srv := &server{
-		logger: logger,
+		logger:                 logger,
+		lastErrorRequests:      NewCircularQueue(10),
+		lastSuccessfulRequests: NewCircularQueue(10),
 	}
 	pb.RegisterMetricsServiceServer(s, srv)
 	pv.RegisterVersionServiceServer(s, srv)
