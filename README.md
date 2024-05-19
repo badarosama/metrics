@@ -19,11 +19,18 @@ a. Request Durations.
 
 
 
-4- Rate of requests: approx 26k
-![Screenshot 2024-05-18 at 10 20 30 PM](https://github.com/badarosama/metrics/assets/549487/5d985caa-0581-4ef2-9366-70cf8087a6eb)
+4- Total # of requests. approx: 12.6 Million.
 
-5- Successfull Requests
-![Screenshot 2024-05-18 at 10 23 38 PM](https://github.com/badarosama/metrics/assets/549487/c1e54851-9283-4064-ae92-7b05d81fefe7)
+![Screenshot 2024-05-19 at 10 28 17 AM](https://github.com/badarosama/metrics/assets/549487/a1caf604-8fd4-442c-8c5f-1d6e09c2fc36)
+
+Client Stats:
+![Screenshot 2024-05-19 at 10 29 30 AM](https://github.com/badarosama/metrics/assets/549487/a8438b4e-b58d-4eb3-a535-1303ee9d5713)
+
+5-Request Rate: 4.5k
+
+![Screenshot 2024-05-19 at 10 34 34 AM](https://github.com/badarosama/metrics/assets/549487/562b3b61-cf4f-4835-aaac-96dbdd4808c6)
+
+6- 
 
 Queries Ran:
 histogram_quantile(0.90, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
