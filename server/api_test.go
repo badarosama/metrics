@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	v1 "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"go.uber.org/zap"
@@ -10,8 +11,10 @@ import (
 )
 
 func TestExport(t *testing.T) {
+	logger, _ := zap.NewDevelopment()
+
 	s := &server{
-		logger:                 &zap.Logger{},
+		logger:                 logger,
 		lastErrorRequests:      NewCircularQueue(10),
 		lastSuccessfulRequests: NewCircularQueue(10),
 	}
@@ -65,22 +68,14 @@ func TestExport(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := s.Export(ctx, tt.request)
-			if err != nil {
-				t.Fatalf("Export() error = %v", err)
-			}
-
-			if (resp.PartialSuccess != nil) != tt.wantErrors {
-				t.Errorf("Export() wantErrors = %v, got %v", tt.wantErrors, resp.PartialSuccess != nil)
-			}
+			assert.NoError(t, err)
 
 			if tt.wantErrors {
-				if resp.PartialSuccess.RejectedDataPoints != tt.wantRejected {
-					t.Errorf("Export() rejectedDataPoints = %v, want %v", resp.PartialSuccess.RejectedDataPoints, tt.wantRejected)
-				}
-
-				if resp.PartialSuccess.ErrorMessage != tt.wantErrorMessage {
-					t.Errorf("Export() errorMessage = %v, want %v", resp.PartialSuccess.ErrorMessage, tt.wantErrorMessage)
-				}
+				assert.NotNil(t, resp.PartialSuccess)
+				assert.Equal(t, tt.wantRejected, resp.PartialSuccess.RejectedDataPoints)
+				assert.Equal(t, tt.wantErrorMessage, resp.PartialSuccess.ErrorMessage)
+			} else {
+				assert.Nil(t, resp.PartialSuccess)
 			}
 		})
 	}

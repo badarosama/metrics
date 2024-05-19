@@ -31,6 +31,7 @@ func (q *CircularQueue) Enqueue(request CachedRequest) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
+	// Adjust head if the queue is full
 	if (q.tail+1)%q.size == q.head {
 		// Queue is full, dequeue one element
 		q.head = (q.head + 1) % q.size
@@ -78,7 +79,7 @@ func (q *CircularQueue) PrintAll() {
 	i := q.head
 	for {
 		fmt.Printf("%+v\n", q.queue[i])
-		if i == q.tail-1 {
+		if i == q.tail {
 			break
 		}
 		i = (i + 1) % q.size
