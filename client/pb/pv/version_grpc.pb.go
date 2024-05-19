@@ -27,6 +27,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VersionServiceClient interface {
+	// GetVersion retrieves the current version information.
+	// This method takes no parameters and returns a VersionResponse message containing version information such as the build timestamp and Git commit SHA.
 	GetVersion(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*VersionResponse, error)
 }
 
@@ -51,6 +53,8 @@ func (c *versionServiceClient) GetVersion(ctx context.Context, in *emptypb.Empty
 // All implementations must embed UnimplementedVersionServiceServer
 // for forward compatibility
 type VersionServiceServer interface {
+	// GetVersion retrieves the current version information.
+	// This method takes no parameters and returns a VersionResponse message containing version information such as the build timestamp and Git commit SHA.
 	GetVersion(context.Context, *emptypb.Empty) (*VersionResponse, error)
 	mustEmbedUnimplementedVersionServiceServer()
 }

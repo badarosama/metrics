@@ -21,14 +21,22 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// The response message containing the version information.
+// VersionResponse is the response message containing the version information.
+// This message includes the build timestamp and the Git commit SHA of the current version.
+// When new fields are added to this message, ensure that the corresponding service methods and clients are updated as well.
 type VersionResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	BuildTimestamp int64  `protobuf:"varint,1,opt,name=build_timestamp,json=buildTimestamp,proto3" json:"build_timestamp,omitempty"`
-	GitCommitSha   string `protobuf:"bytes,2,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
+	// The build timestamp.
+	// This field represents the timestamp of the build, indicating when the version was built.
+	// It is represented as an int64 and returns a unix EPOCH.
+	BuildTimestamp int64 `protobuf:"varint,1,opt,name=build_timestamp,json=buildTimestamp,proto3" json:"build_timestamp,omitempty"`
+	// The Git commit SHA.
+	// This field holds the SHA hash of the Git commit, indicating the specific source code version.
+	// It is represented as a string.
+	GitCommitSha string `protobuf:"bytes,2,opt,name=git_commit_sha,json=gitCommitSha,proto3" json:"git_commit_sha,omitempty"`
 }
 
 func (x *VersionResponse) Reset() {

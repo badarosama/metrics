@@ -145,7 +145,6 @@ func main() {
 		grpc.Creds(tlsCredentials),
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
-		//grpc.UnaryInterceptor(UnaryInterceptor(logger)),
 		grpc.UnaryInterceptor(UnaryInterceptorPrometheus),
 	)
 	// Initialize the server struct with the logger
@@ -154,6 +153,7 @@ func main() {
 		lastErrorRequests:      NewCircularQueue(10),
 		lastSuccessfulRequests: NewCircularQueue(10),
 	}
+
 	pb.RegisterMetricsServiceServer(s, srv)
 	pv.RegisterVersionServiceServer(s, srv)
 	reflection.Register(s)

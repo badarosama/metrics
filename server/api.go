@@ -74,12 +74,12 @@ func (s *server) Export(ctx context.Context,
 	return response, nil
 }
 
-// GetVersion retrieves the current version information.
-// This method takes no parameters and returns a VersionResponse
-// message containing version information such as the build timestamp
-// and Git commit SHA.
+// GetVersion retrieves the current version information. This method takes no parameters and returns a VersionResponse
+// message containing version information such as the build timestamp and Git commit SHA.
 func (s *server) GetVersion(context.Context, *emptypb.Empty) (*pv.VersionResponse, error) {
 	commitSha, timestamp := version.BuildVersion()
+	s.logger.Info("Received request", zap.Any("commitSha", commitSha))
+	s.logger.Info("Received request", zap.Any("timestamp", timestamp))
 	return &pv.VersionResponse{
 		BuildTimestamp: timestamp,
 		GitCommitSha:   commitSha,
