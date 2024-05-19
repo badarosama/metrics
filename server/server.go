@@ -3,11 +3,14 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
@@ -17,6 +20,7 @@ import (
 	"metrics/server/pb/pv"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -74,7 +78,15 @@ func initLogger(config LoggerConfig) (*zap.Logger, error) {
 
 	cfg := zap.NewProductionConfig()
 	cfg.Level = level
-	logger, err := cfg.Build()
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder // Human-readable timestamps
+	cfg.OutputPaths = []string{"stdout", "./logs/server.log"}
+	cfg.ErrorOutputPaths = []string{"stderr"}
+	cfg.Sampling = &zap.SamplingConfig{
+		Initial:    100,
+		Thereafter: 100,
+	}
+
+	logger, err := cfg.Build(zap.AddCallerSkip(1)) // Skip the zap library's frames in the call stack
 	if err != nil {
 		return nil, err
 	}
@@ -105,21 +117,7 @@ func init() {
 	prometheus.MustRegister(requestCount, requestDuration)
 }
 
-func main() {
-	// Initialize logger based on configuration
-	loggerConfig, _ := loadConfig(pathOfConfigFile)
-	logger, err := initLogger(loggerConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	defer logger.Sync()
-
-	listener, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
+func getServerCertAndPool() (tls.Certificate, *x509.CertPool) {
 	// load certs
 	caPem, err := ioutil.ReadFile("certs/ca.crt")
 	// create cert pool and append ca's cert
@@ -134,6 +132,38 @@ func main() {
 		log.Fatal(err)
 	}
 
+	return serverCert, certPool
+}
+
+func configureLogger() *zap.Logger {
+	// Ensure the logs directory exists
+	err := os.MkdirAll("./logs", os.ModePerm)
+	if err != nil {
+		log.Fatalf("Failed to create log directory: %v", err)
+	}
+
+	// Initialize logger based on configuration
+	loggerConfig, _ := loadConfig(pathOfConfigFile)
+	logger, err := initLogger(loggerConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	return logger
+}
+
+func main() {
+	// setup logger
+	logger := configureLogger()
+	defer logger.Sync()
+
+	listener, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		//log.Fatalf("Failed to listen: %v", err)
+		logger.Error("Failed to listen %v", zap.Error(err))
+	}
+
+	serverCert, certPool := getServerCertAndPool()
 	// configuration of the certificate what we want to
 	conf := &tls.Config{
 		Certificates: []tls.Certificate{serverCert},
@@ -145,7 +175,10 @@ func main() {
 		grpc.Creds(tlsCredentials),
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
-		grpc.UnaryInterceptor(UnaryInterceptorPrometheus),
+		grpc.ChainUnaryInterceptor(UnaryInterceptorPrometheus,
+			grpc_middleware.ChainUnaryServer(
+				grpc_recovery.UnaryServerInterceptor(),
+			)),
 	)
 	// Initialize the server struct with the logger
 	srv := &server{
@@ -163,8 +196,10 @@ func main() {
 		http.ListenAndServe(":9091", nil)
 	}()
 
-	log.Printf("Server is listening on port 8080...")
+	//log.Printf("Server is listening on port 8080...")
+	logger.Info("Server is listening on port 8080...")
 	if err := s.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+		//log.Fatalf("Failed to serve: %v", err)
+		logger.Error("Failed to serve: %v", zap.Error(err))
 	}
 }

@@ -10,37 +10,33 @@ import (
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"io/ioutil"
 	"log"
-	"metrics/client/pb/pv"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
-const (
-	serverAddress         = "localhost:8080"
-	numConcurrentRequests = 1
-)
+// serverAddress is the address of the server to connect to.
+const serverAddress = "localhost:8080"
 
+// Variables to track total requests, failures, successes, and details of the first failed/successful requests.
 var (
-	totalRequests             = 0
-	totalFailedRequests       = 0
-	totalSuccessfulRequests   = 0
+	// totalRequests keeps track of the total number of requests made.
+	totalRequests = 0
+	// totalFailedRequests keeps track of the total number of failed requests.
+	totalFailedRequests = 0
+	// totalSuccessfulRequests keeps track of the total number of successful requests.
+	totalSuccessfulRequests = 0
+	// firstFailedRequestDetails stores the details of the first failed request.
 	firstFailedRequestDetails string
-	firstSuccessfulRequest    string
+	// firstSuccessfulRequest stores the details of the first successful request.
+	firstSuccessfulRequest string
 )
 
-func getVersion(client pv.VersionServiceClient) {
-	resp, err := client.GetVersion(context.Background(), &emptypb.Empty{})
-	log.Printf("Response: %s", resp.GitCommitSha)
-	log.Printf("Response: %v", resp.BuildTimestamp)
-	if err != nil {
-		log.Printf("Failed to get response: %v", err)
-	}
-}
-
-func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJson string) {
+func sendRequests(client pb.MetricsServiceClient, requestJson string, duration time.Duration, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
 
 	req := &pb.ExportMetricsServiceRequest{}
@@ -49,22 +45,41 @@ func sendRequests(client pb.MetricsServiceClient, wg *sync.WaitGroup, requestJso
 		return
 	}
 
-	for i := 0; i < numConcurrentRequests; i++ {
-		resp, err := client.Export(context.Background(), req)
-		log.Printf("resp: %v", resp)
-		totalRequests++
-		if err != nil || (resp != nil && resp.GetPartialSuccess() != nil) {
-			totalFailedRequests++
-			if firstFailedRequestDetails == "" {
-				firstFailedRequestDetails = fmt.Sprintf("Failed request details: %v", req)
+	timer := time.NewTimer(duration)
+	for {
+		select {
+		case <-ctx.Done():
+			// If context is canceled, return immediately
+			return
+		case <-timer.C:
+			// If time is up, return
+			return
+		default:
+			resp, err := client.Export(context.Background(), req)
+			totalRequests++
+
+			if err != nil {
+				// Case 1: Error returned by the Export call
+				totalFailedRequests++
+				if firstFailedRequestDetails == "" {
+					firstFailedRequestDetails = fmt.Sprintf("Failed request details: %v", req)
+				}
+				log.Printf("Failed to get response: %v", err)
+			} else if resp.GetPartialSuccess() != nil {
+				// Case 2: Partial success (some data points were rejected)
+				totalFailedRequests += int(resp.GetPartialSuccess().GetRejectedDataPoints())
+				if firstFailedRequestDetails == "" {
+					firstFailedRequestDetails = fmt.Sprintf("Partial error request details: %v", req)
+				}
+				log.Printf("Partial success: %v", resp.GetPartialSuccess())
+			} else {
+				// Case 3: Successful response
+				totalSuccessfulRequests++
+				if firstSuccessfulRequest == "" {
+					firstSuccessfulRequest = fmt.Sprintf("Successful request details: %v", req)
+				}
+				log.Printf("Successful response: %v", resp)
 			}
-			log.Printf("Failed to get response: %v", err)
-		} else {
-			totalSuccessfulRequests++
-			if firstSuccessfulRequest == "" {
-				firstSuccessfulRequest = fmt.Sprintf("Successful request details: %v", req)
-			}
-			log.Printf("Response: %v", resp)
 		}
 	}
 }
@@ -77,19 +92,10 @@ func readJSONFile(filename string) (string, error) {
 	return string(bytes), nil
 }
 
-func main() {
-	filename := flag.String("filename", "", "Path to the JSON file containing the request data")
-	duration := flag.Int("duration", 5, "Duration of the load test in minutes")
-
-	flag.Parse()
-
-	if *filename == "" {
-		log.Fatal("Please provide the filename parameter")
-	}
-
+func getClientCertAndPool() (tls.Certificate, *x509.CertPool) {
 	caCert, err := ioutil.ReadFile("certs/ca.crt")
 	if err != nil {
-		log.Fatal(caCert)
+		log.Fatal(err)
 	}
 
 	certPool := x509.NewCertPool()
@@ -102,6 +108,21 @@ func main() {
 		log.Fatal(err)
 	}
 
+	return clientCert, certPool
+}
+
+func main() {
+	filename := flag.String("filename", "", "Path to the JSON file containing the request data")
+	duration := flag.Int("duration", 0, "Duration of the load test in seconds")
+	numConReq := flag.Int("concurrent", 1, "Number of concurrent requests")
+
+	flag.Parse()
+
+	if *filename == "" {
+		log.Fatal("Please provide the filename parameter")
+	}
+
+	clientCert, certPool := getClientCertAndPool()
 	config := &tls.Config{
 		Certificates: []tls.Certificate{clientCert},
 		RootCAs:      certPool,
@@ -115,30 +136,39 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewMetricsServiceClient(conn)
-	//versionClient := pv.NewVersionServiceClient(conn)
-	//getVersion(versionClient)
-	var wg sync.WaitGroup
 
 	requestJson, err := readJSONFile(*filename)
 	if err != nil {
 		log.Fatalf("Failed to read request file: %v", err)
 	}
 
-	testDuration := time.Duration(*duration) * time.Minute
-	startTime := time.Now()
+	var wg sync.WaitGroup
 
-	for {
-		if time.Since(startTime) >= testDuration {
-			break
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Set up signal handling for graceful shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		for {
+			select {
+			case <-sigCh:
+				// If canceled by user, cancel the context
+				cancel()
+				return
+			default:
+				wg.Add(*numConReq)
+				go sendRequests(client, requestJson, time.Duration(*duration)*time.Second, &wg, ctx)
+				wg.Wait() // Wait for all requests to finish
+			}
 		}
+	}()
 
-		wg.Add(numConcurrentRequests)
-		go sendRequests(client, &wg, requestJson)
-		time.Sleep(1 * time.Second) // Adjust the delay between requests as needed
-	}
+	// Wait until the context is canceled
+	<-ctx.Done()
 
-	wg.Wait()
-
+	// Print statistics after the test is canceled
 	fmt.Printf("Total Requests: %d\n", totalRequests)
 	fmt.Printf("Total Successful Requests: %d\n", totalSuccessfulRequests)
 	fmt.Printf("Total Failed Requests: %d\n", totalFailedRequests)
