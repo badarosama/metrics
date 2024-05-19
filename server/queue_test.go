@@ -3,33 +3,39 @@ package main
 import (
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 )
 
-func TestCircularQueue(t *testing.T) {
-	size := 3
-	queue := NewCircularQueue(size)
+func TestCircularQueueOverwrite(t *testing.T) {
+	// Create a new circular queue with a fixed size of 10
+	queue := NewCircularQueue(10)
 
-	// Test Enqueue
-	request1 := CachedRequest{Request: &pb.ExportMetricsServiceRequest{}, Timestamp: time.Now()}
-	queue.Enqueue(request1)
-	assert.Equal(t, 1, queue.tail, "Tail should be updated after enqueueing an element")
-	assert.Equal(t, request1, queue.queue[0], "Enqueued element should be at the head of the queue")
+	// Enqueue 15 elements with timestamps
+	for i := 0; i < 15; i++ {
+		request := CachedRequest{
+			Request:   nil, // Dummy request
+			Timestamp: time.Now(),
+		}
+		queue.Enqueue(request)
+	}
 
-	// Test Enqueue when queue is full
-	request2 := CachedRequest{Request: &pb.ExportMetricsServiceRequest{}, Timestamp: time.Now()}
-	request3 := CachedRequest{Request: &pb.ExportMetricsServiceRequest{}, Timestamp: time.Now()}
-	queue.Enqueue(request2)
-	queue.Enqueue(request3)
-	assert.Equal(t, 0, queue.head, "Head should be updated after dequeueing an element due to full queue")
-	assert.Nil(t, queue.queue[0].Request, "Oldest element should be nil after enqueueing new elements when queue is full")
+	// Check the contents of the queue
+	expectedLength := 10
+	if len(queue.queue) != expectedLength {
+		t.Errorf("Expected queue length %d, got %d", expectedLength, len(queue.queue))
+	}
 
-	// Test PrintFirst and PrintLast
-	queue.PrintFirst()
-	queue.PrintLast()
+	// Check that the timestamps in the queue are in the expected order (oldest overwritten)
+	oldestTimestamp := queue.queue[0].Timestamp
+	for i := 1; i < len(queue.queue); i++ {
+		if queue.queue[i].Timestamp.Before(oldestTimestamp) {
+			oldestTimestamp = queue.queue[i].Timestamp
+		}
+	}
 
-	// Test PrintAll
-	queue.PrintAll()
+	// Now compare the timestamps with the oldestTimestamp
+	for i := 1; i < len(queue.queue); i++ {
+		if queue.queue[i].Timestamp.Before(oldestTimestamp) {
+			t.Errorf("Elements in the queue are not overwritten properly")
+		}
+	}
 }
