@@ -156,36 +156,6 @@ The use of a circular queue for caching offers several advantages:
 
 4. **Optimized Access**: Access to the most recent responses is optimized through the head and tail pointers, facilitating quick retrieval of cached data.
 
-### Code Reference
-
-Below is a snippet of the circular queue implementation used in the server codebase:
-
-```go
-// CircularQueue represents a circular queue data structure
-type CircularQueue struct {
-    queue []CachedRequest
-    size  int
-    head  int
-    tail  int
-    mutex sync.Mutex
-}
-
-// NewCircularQueue initializes a new circular queue with the specified size
-func NewCircularQueue(size int) *CircularQueue {
-    return &CircularQueue{
-        queue: make([]CachedRequest, size),
-        size:  size,
-    }
-}
-
-// Enqueue adds a new request to the circular queue
-func (q *CircularQueue) Enqueue(request CachedRequest) {
-    q.mutex.Lock()
-    defer q.mutex.Unlock()
-
-    // Enqueue operation implementation
-    // ...
-}
 
 ## License
 
