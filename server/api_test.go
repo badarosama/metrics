@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	v1 "go.opentelemetry.io/proto/otlp/metrics/v1"
-	"golang.org/x/net/context"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 )
 
 func TestExport(t *testing.T) {
-	s := &server{}
+	s := &server{
+		logger:                 &zap.Logger{},
+		lastErrorRequests:      NewCircularQueue(10),
+		lastSuccessfulRequests: NewCircularQueue(10),
+	}
 	ctx := context.Background()
 
 	tests := []struct {

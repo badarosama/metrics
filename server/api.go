@@ -27,7 +27,7 @@ import (
 // - error: An error, if any occurred during processing.
 func (s *server) Export(ctx context.Context,
 	req *pb.ExportMetricsServiceRequest) (*pb.ExportMetricsServiceResponse, error) {
-	//s.logger.Info("Received request", zap.Any("request", req))
+	s.logger.Debug("Export method called", zap.Any("request", req))
 
 	hasErrors := false
 	var errorMessage string
@@ -80,8 +80,7 @@ func (s *server) Export(ctx context.Context,
 // message containing version information such as the build timestamp and Git commit SHA.
 func (s *server) GetVersion(context.Context, *emptypb.Empty) (*pv.VersionResponse, error) {
 	commitSha, timestamp := version.BuildVersion()
-	s.logger.Info("Received request GetVersion", zap.String("commitSha", commitSha))
-
+	s.logger.Debug("GetVersion method called")
 	return &pv.VersionResponse{
 		BuildTimestamp: timestamp,
 		GitCommitSha:   commitSha,

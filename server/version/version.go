@@ -11,8 +11,8 @@ var (
 )
 
 func convertToTimestamp(date string) (timestamp int64, err error) {
-	timeStr := "2024-05-17T11:34:30"
-	t, err := time.Parse(date, timeStr)
+	timeStr := "2006-01-02T15:04:05"
+	t, err := time.Parse(timeStr, date)
 	if err != nil {
 		return
 	}
