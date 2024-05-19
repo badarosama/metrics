@@ -83,8 +83,12 @@ Before running the client, ensure that you have the necessary configuration file
 3. The client will send requests to the server and display statistics after the test duration.
 
 ## Performance Metrics (NA)
+We instrumnet the server with prometheus metrics and ran a small load test.
 
-Performance metrics for load testing are not available at the moment.
+To be completed.
+![Screenshot 2024-05-18 at 6 27 53 PM](https://github.com/badarosama/metrics/assets/549487/08d797ec-a3f1-4a41-b5fc-978ebc42d856)
+
+
 
 ## License
 
