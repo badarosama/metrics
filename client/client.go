@@ -10,12 +10,11 @@ import (
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"io/ioutil"
 	"log"
-	"os"
-	"os/signal"
+	"metrics/client/pb/pv"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -35,6 +34,14 @@ var (
 	// firstSuccessfulRequest stores the details of the first successful request.
 	firstSuccessfulRequest string
 )
+
+func getVersion(client pv.VersionServiceClient) {
+	resp, err := client.GetVersion(context.Background(), &emptypb.Empty{})
+	log.Printf("Response from version api: %v", resp)
+	if err != nil {
+		log.Printf("Failed to get response: %v", err)
+	}
+}
 
 func sendRequests(client pb.MetricsServiceClient, requestJson string, duration time.Duration, wg *sync.WaitGroup, ctx context.Context) {
 	defer wg.Done()
@@ -78,7 +85,7 @@ func sendRequests(client pb.MetricsServiceClient, requestJson string, duration t
 				if firstSuccessfulRequest == "" {
 					firstSuccessfulRequest = fmt.Sprintf("Successful request details: %v", req)
 				}
-				log.Printf("Successful response: %v", resp)
+				//log.Printf("Successful response: %v", resp)
 			}
 		}
 	}
@@ -113,8 +120,8 @@ func getClientCertAndPool() (tls.Certificate, *x509.CertPool) {
 
 func main() {
 	filename := flag.String("filename", "", "Path to the JSON file containing the request data")
-	duration := flag.Int("duration", 0, "Duration of the load test in seconds")
-	numConReq := flag.Int("concurrent", 1, "Number of concurrent requests")
+	//duration := flag.Int("duration", 0, "Duration of the load test in seconds")
+	//numConReq := flag.Int("concurrent", 1, "Number of concurrent requests")
 
 	flag.Parse()
 
@@ -135,43 +142,46 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := pb.NewMetricsServiceClient(conn)
+	//client := pb.NewMetricsServiceClient(conn)
 
-	requestJson, err := readJSONFile(*filename)
-	if err != nil {
-		log.Fatalf("Failed to read request file: %v", err)
-	}
+	versionClient := pv.NewVersionServiceClient(conn)
 
-	var wg sync.WaitGroup
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Set up signal handling for graceful shutdown
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		for {
-			select {
-			case <-sigCh:
-				// If canceled by user, cancel the context
-				cancel()
-				return
-			default:
-				wg.Add(*numConReq)
-				go sendRequests(client, requestJson, time.Duration(*duration)*time.Second, &wg, ctx)
-				wg.Wait() // Wait for all requests to finish
-			}
-		}
-	}()
-
-	// Wait until the context is canceled
-	<-ctx.Done()
-
-	// Print statistics after the test is canceled
-	fmt.Printf("Total Requests: %d\n", totalRequests)
-	fmt.Printf("Total Successful Requests: %d\n", totalSuccessfulRequests)
-	fmt.Printf("Total Failed Requests: %d\n", totalFailedRequests)
-	fmt.Println(firstFailedRequestDetails)
-	fmt.Println(firstSuccessfulRequest)
+	getVersion(versionClient)
+	//requestJson, err := readJSONFile(*filename)
+	//if err != nil {
+	//	log.Fatalf("Failed to read request file: %v", err)
+	//}
+	//
+	//var wg sync.WaitGroup
+	//
+	//ctx, cancel := context.WithCancel(context.Background())
+	//
+	//// Set up signal handling for graceful shutdown
+	//sigCh := make(chan os.Signal, 1)
+	//signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	//
+	//go func() {
+	//	for {
+	//		select {
+	//		case <-sigCh:
+	//			// If canceled by user, cancel the context
+	//			cancel()
+	//			return
+	//		default:
+	//			wg.Add(*numConReq)
+	//			go sendRequests(client, requestJson, time.Duration(*duration)*time.Second, &wg, ctx)
+	//			wg.Wait() // Wait for all requests to finish
+	//		}
+	//	}
+	//}()
+	//
+	//// Wait until the context is canceled
+	//<-ctx.Done()
+	//
+	//// Print statistics after the test is canceled
+	//fmt.Printf("Total Requests: %d\n", totalRequests)
+	//fmt.Printf("Total Successful Requests: %d\n", totalSuccessfulRequests)
+	//fmt.Printf("Total Failed Requests: %d\n", totalFailedRequests)
+	//fmt.Println(firstFailedRequestDetails)
+	//fmt.Println(firstSuccessfulRequest)
 }
