@@ -7,41 +7,8 @@ This repository contains a gRPC-based Metrics Server and Client for exporting me
 1. **Server**: The Metrics Server implemented in Go listens for incoming gRPC requests, processes the metrics data, and returns appropriate responses. It includes features like TLS encryption, Prometheus metrics endpoint, and logging.
 
 2. **Client**: The Metrics Client implemented in Go sends requests to the Metrics Server to export metrics data. It includes features like concurrent request handling, TLS encryption, and JSON request file support.
+![Screenshot 2024-05-18 at 10 23 38 PM](https://github.com/badarosama/metrics/assets/549487/bb541390-5356-42d3-849c-d4ab52f9cc68)
 
-## Load Test
-a. Request Durations.
-1. 90th percentile. 4.5 ms
-   ![Screenshot 2024-05-18 at 10 14 48 PM](https://github.com/badarosama/metrics/assets/549487/5c630b00-b3c2-4157-a0ef-acde953c565d)
-2.95th percentile. 4.5ms
-   ![Screenshot 2024-05-18 at 10 16 46 PM](https://github.com/badarosama/metrics/assets/549487/62c8dd00-00f3-4a44-9a44-33a492528bc1)
-3- 99th percentile. approx: 4.7ms
-![Screenshot 2024-05-18 at 10 17 21 PM](https://github.com/badarosama/metrics/assets/549487/53fb8379-f0a6-4e24-8e01-4a400d954dc3)
-
-
-
-4- Total # of requests. approx: 12.6 Million.
-
-![Screenshot 2024-05-19 at 10 28 17 AM](https://github.com/badarosama/metrics/assets/549487/a1caf604-8fd4-442c-8c5f-1d6e09c2fc36)
-
-Client Stats: approx: 13 million.
-![Screenshot 2024-05-19 at 10 29 30 AM](https://github.com/badarosama/metrics/assets/549487/a8438b4e-b58d-4eb3-a535-1303ee9d5713)
-
-The windows are not accurately calculated and prometheus extrapolates data in some cases as explained here:https://www.youtube.com/watch?v=7uy_yovtyqw
-
-5-Request Rate: 4.5k/s
-
-![Screenshot 2024-05-19 at 10 34 34 AM](https://github.com/badarosama/metrics/assets/549487/562b3b61-cf4f-4835-aaac-96dbdd4808c6)
-
-
-
-Queries Ran:
-histogram_quantile(0.90, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
-histogram_quantile(0.95, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
-histogram_quantile(0.99, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
-sum(grpc_request_count)
-rate(grpc_request_count[1m])
-sum(grpc_request_count{code="OK"})
-sum(grpc_request_count) - sum(grpc_request_count{code="OK"})
 
 ## Requirements
 
@@ -124,6 +91,40 @@ Before running the client, ensure that you have the necessary configuration file
     Replace `<path_to_request_json>` with the path to the JSON file containing the request data, `<load_test_duration_minutes>` with the duration of the load test in minutes, and `<num_concurrent_requests>` with the number of concurrent requests to be made.
 
 3. The client will send requests to the server and display statistics after the test duration.
+
+## Load Test
+a. Request Durations.
+1. 90th percentile. 4.5 ms
+   ![Screenshot 2024-05-18 at 10 14 48 PM](https://github.com/badarosama/metrics/assets/549487/5c630b00-b3c2-4157-a0ef-acde953c565d)
+2.95th percentile. 4.5ms
+   ![Screenshot 2024-05-18 at 10 16 46 PM](https://github.com/badarosama/metrics/assets/549487/62c8dd00-00f3-4a44-9a44-33a492528bc1)
+3- 99th percentile. approx: 4.7ms
+![Screenshot 2024-05-18 at 10 17 21 PM](https://github.com/badarosama/metrics/assets/549487/53fb8379-f0a6-4e24-8e01-4a400d954dc3)
+
+
+
+4- Total # of requests. approx: 12.6 Million.
+
+![Screenshot 2024-05-19 at 10 28 17 AM](https://github.com/badarosama/metrics/assets/549487/a1caf604-8fd4-442c-8c5f-1d6e09c2fc36)
+
+Client Stats: approx: 13 million.
+![Screenshot 2024-05-19 at 10 29 30 AM](https://github.com/badarosama/metrics/assets/549487/a8438b4e-b58d-4eb3-a535-1303ee9d5713)
+
+The windows are not accurately calculated and prometheus extrapolates data in some cases as explained here:https://www.youtube.com/watch?v=7uy_yovtyqw
+
+5-Request Rate: 4.5k/s
+
+![Screenshot 2024-05-19 at 10 34 34 AM](https://github.com/badarosama/metrics/assets/549487/562b3b61-cf4f-4835-aaac-96dbdd4808c6)
+
+
+Queries Ran:
+histogram_quantile(0.90, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
+histogram_quantile(0.95, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
+histogram_quantile(0.99, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
+sum(grpc_request_count)
+rate(grpc_request_count[1m])
+sum(grpc_request_count{code="OK"})
+sum(grpc_request_count) - sum(grpc_request_count{code="OK"})
 
 ## Cached Requests
 
