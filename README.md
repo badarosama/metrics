@@ -49,7 +49,7 @@ Before running the server, ensure that you have the necessary configuration file
 2. Build and run the server:
 
     ```bash
-    go run ./server/server.go
+    go run ./server/server
     ```
 
 3. The server will start listening on port `8080`.
