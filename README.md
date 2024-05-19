@@ -7,6 +7,8 @@ This repository contains a gRPC-based Metrics Server and Client for exporting me
 1. **Server**: The Metrics Server implemented in Go listens for incoming gRPC requests, processes the metrics data, and returns appropriate responses. It includes features like TLS encryption, Prometheus metrics endpoint, and logging.
 
 2. **Client**: The Metrics Client implemented in Go sends requests to the Metrics Server to export metrics data. It includes features like concurrent request handling, TLS encryption, and JSON request file support.
+
+
 ![Screenshot 2024-05-18 at 10 23 38 PM](https://github.com/badarosama/metrics/assets/549487/bb541390-5356-42d3-849c-d4ab52f9cc68)
 
 
