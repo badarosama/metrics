@@ -26,6 +26,8 @@ a. Request Durations.
 Client Stats: approx: 13 million.
 ![Screenshot 2024-05-19 at 10 29 30 AM](https://github.com/badarosama/metrics/assets/549487/a8438b4e-b58d-4eb3-a535-1303ee9d5713)
 
+The windows are not accurately calculated and prometheus extrapolates data in some cases as explained here:https://www.youtube.com/watch?v=7uy_yovtyqw
+
 5-Request Rate: 4.5k/s
 
 ![Screenshot 2024-05-19 at 10 34 34 AM](https://github.com/badarosama/metrics/assets/549487/562b3b61-cf4f-4835-aaac-96dbdd4808c6)
