@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -92,29 +91,6 @@ func initLogger(config LoggerConfig) (*zap.Logger, error) {
 	}
 
 	return logger, nil
-}
-
-var (
-	requestCount = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "grpc_request_count",
-			Help: "Total number of gRPC requests",
-		},
-		[]string{"method", "client", "code"},
-	)
-	requestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "grpc_request_duration_seconds",
-			Help:    "Duration of gRPC requests in seconds",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"method"},
-	)
-)
-
-func init() {
-	// Register the metrics with Prometheus's default registry
-	prometheus.MustRegister(requestCount, requestDuration)
 }
 
 func getServerCertAndPool() (tls.Certificate, *x509.CertPool) {

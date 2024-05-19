@@ -70,7 +70,8 @@ func (s *server) Export(ctx context.Context,
 			Timestamp: time.Now(),
 		})
 	}
-
+	s.lastErrorRequests.PrintFirst()
+	s.lastErrorRequests.PrintLast()
 	return response, nil
 }
 

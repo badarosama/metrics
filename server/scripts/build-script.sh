@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# STEP 1: Determinate the required values
+# STEP 1: Determine the required values
 
 PACKAGE="metrics"
 VERSION="$(git describe --tags --always --abbrev=0 --match='v[0-9]*.[0-9]*.[0-9]*' 2> /dev/null | sed 's/^.//')"
