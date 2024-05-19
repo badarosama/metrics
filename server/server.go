@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpcrecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -26,6 +26,7 @@ import (
 
 const (
 	pathOfConfigFile = "./server/config.yaml"
+	cacheSize        = 10
 )
 
 type server struct {
@@ -129,14 +130,13 @@ func configureLogger() *zap.Logger {
 }
 
 func main() {
-	// setup logger
+	// Setup logger.
 	logger := configureLogger()
 	defer logger.Sync()
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		//log.Fatalf("Failed to listen: %v", err)
-		logger.Error("Failed to listen %v", zap.Error(err))
+		logger.Error("Failed to listen", zap.Error(err))
 	}
 
 	serverCert, certPool := getServerCertAndPool()
@@ -152,15 +152,15 @@ func main() {
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
 		grpc.ChainUnaryInterceptor(UnaryInterceptorPrometheus,
-			grpc_middleware.ChainUnaryServer(
-				grpc_recovery.UnaryServerInterceptor(),
+			grpcmiddleware.ChainUnaryServer(
+				grpcrecovery.UnaryServerInterceptor(),
 			)),
 	)
 	// Initialize the server struct with the logger
 	srv := &server{
 		logger:                 logger,
-		lastErrorRequests:      NewCircularQueue(10),
-		lastSuccessfulRequests: NewCircularQueue(10),
+		lastErrorRequests:      NewCircularQueue(cacheSize),
+		lastSuccessfulRequests: NewCircularQueue(cacheSize),
 	}
 
 	pb.RegisterMetricsServiceServer(s, srv)
@@ -172,10 +172,8 @@ func main() {
 		http.ListenAndServe(":9091", nil)
 	}()
 
-	//log.Printf("Server is listening on port 8080...")
 	logger.Info("Server is listening on port 8080...")
 	if err := s.Serve(listener); err != nil {
-		//log.Fatalf("Failed to serve: %v", err)
-		logger.Error("Failed to serve: %v", zap.Error(err))
+		logger.Error("Failed to serve", zap.Error(err))
 	}
 }

@@ -33,7 +33,9 @@ func (s *server) Export(ctx context.Context,
 	var errorMessage string
 	rejectedDataPoints := 0
 
-	// Helper function to check if a metric is empty
+	// Helper function to check if a metric is empty:
+	// Other checks can also be added for error checking
+	// based on requirements.
 	isEmptyMetric := func(metric *v1.Metric) bool {
 		return metric.Name == "" || metric.Description == "" || metric.Unit == "" || metric.Data == nil
 	}
@@ -70,8 +72,7 @@ func (s *server) Export(ctx context.Context,
 			Timestamp: time.Now(),
 		})
 	}
-	s.lastErrorRequests.PrintFirst()
-	s.lastErrorRequests.PrintLast()
+
 	return response, nil
 }
 
