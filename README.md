@@ -43,13 +43,13 @@ Before running the server, ensure that you have the necessary configuration file
 1. Navigate to the server directory:
 
     ```bash
-    cd server
+    cd metrics
     ```
 
 2. Build and run the server:
 
     ```bash
-    go run server.go
+    go run ./server/server.go
     ```
 
 3. The server will start listening on port `8080`.
@@ -69,13 +69,13 @@ Before running the client, ensure that you have the necessary configuration file
 1. Navigate to the client directory:
 
     ```bash
-    cd client
+    cd metrics
     ```
 
 2. Build and run the client:
 
     ```bash
-    go run client.go -filename <path_to_request_json> -duration <load_test_duration_minutes> -concurrent <num_concurrent_requests>
+    go run ./client/client.go -filename <path_to_request_json> -duration <load_test_duration_minutes> -concurrent <num_concurrent_requests>
     ```
 
     Replace `<path_to_request_json>` with the path to the JSON file containing the request data, `<load_test_duration_minutes>` with the duration of the load test in minutes, and `<num_concurrent_requests>` with the number of concurrent requests to be made.
