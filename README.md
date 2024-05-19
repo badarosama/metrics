@@ -8,6 +8,32 @@ This repository contains a gRPC-based Metrics Server and Client for exporting me
 
 2. **Client**: The Metrics Client implemented in Go sends requests to the Metrics Server to export metrics data. It includes features like concurrent request handling, TLS encryption, and JSON request file support.
 
+## Load Test
+a. Request Durations.
+1. 90th percentile. 4.5 ms
+   ![Screenshot 2024-05-18 at 10 14 48 PM](https://github.com/badarosama/metrics/assets/549487/5c630b00-b3c2-4157-a0ef-acde953c565d)
+2.95th percentile. 4.5ms
+   ![Screenshot 2024-05-18 at 10 16 46 PM](https://github.com/badarosama/metrics/assets/549487/62c8dd00-00f3-4a44-9a44-33a492528bc1)
+3- 99th percentile. approx: 4.7ms
+![Screenshot 2024-05-18 at 10 17 21 PM](https://github.com/badarosama/metrics/assets/549487/53fb8379-f0a6-4e24-8e01-4a400d954dc3)
+
+
+
+4- Rate of requests: approx 26k
+![Screenshot 2024-05-18 at 10 20 30 PM](https://github.com/badarosama/metrics/assets/549487/5d985caa-0581-4ef2-9366-70cf8087a6eb)
+
+5- Successfull Requests
+![Screenshot 2024-05-18 at 10 23 38 PM](https://github.com/badarosama/metrics/assets/549487/c1e54851-9283-4064-ae92-7b05d81fefe7)
+
+Queries Ran:
+histogram_quantile(0.90, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
+histogram_quantile(0.95, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
+histogram_quantile(0.99, sum(rate(grpc_request_duration_seconds_bucket[5m])) by (le))
+sum(grpc_request_count)
+rate(grpc_request_count[1m])
+sum(grpc_request_count{code="OK"})
+sum(grpc_request_count) - sum(grpc_request_count{code="OK"})
+
 ## Requirements
 
 To run the Metrics Server and Client, ensure you have the following installed:
