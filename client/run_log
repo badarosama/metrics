@@ -1,22 +1,11 @@
 Parameters:
-Filename: ./client/request_jsons/invalid_request.json
+Filename: ./client/request_jsons/valid_request.json
 Duration: 10
 Number of Concurrent Requests: 1
-GitCommitSha: 11688ca
-BuildTimestamp: 1716125048
-Total Requests: 47692
-Total Successful Requests: 0
-Total Failed Requests: 47692
-First Failed Request: Partial error request details: resource_metrics:{resource:{attributes:{key:"service.name"  value:{string_value:"my.service"}}}  scope_metrics:{scope:{name:"my.library"  version:"1.0.0"  attributes:{key:"my.scope.attribute"  value:{string_value:"some scope attribute"}}}  metrics:{name:"my.counter"  description:"I am a Counter"  unit:"1"  sum:{data_points:{attributes:{key:"my.counter.attr"  value:{string_value:"some value"}}  start_time_unix_nano:1544712660300000000  time_unix_nano:1544712660300000000  as_double:5}  aggregation_temporality:AGGREGATION_TEMPORALITY_DELTA  is_monotonic:true}}  metrics:{name:"my.gauge"  description:"I am a Gauge"  unit:"1"  gauge:{data_points:{attributes:{key:"my.gauge.attr"  value:{string_value:"some value"}}  time_unix_nano:1544712660300000000  as_double:10}}}  metrics:{name:"my.histogram"  description:"I am a Histogram"  unit:"1"  histogram:{data_points:{attributes:{key:"my.histogram.attr"  value:{string_value:"some value"}}  start_time_unix_nano:1544712660300000000  time_unix_nano:1544712660300000000  count:2  sum:2  bucket_counts:1  bucket_counts:1  explicit_bounds:1  min:0  max:2}  aggregation_temporality:AGGREGATION_TEMPORALITY_DELTA}}}  scope_metrics:{scope:{name:"scope-name"  version:"version"}  metrics:{description:"Description of the metric"  unit:"unit"}  schema_url:"schema_url"}}
-Last Failed Request: Failed request details: resource_metrics:{resource:{attributes:{key:"service.name"  value:{string_value:"my.service"}}}  scope_metrics:{scope:{name:"my.library"  version:"1.0.0"  attributes:{key:"my.scope.attribute"  value:{string_value:"some scope attribute"}}}  metrics:{name:"my.counter"  description:"I am a Counter"  unit:"1"  sum:{data_points:{attributes:{key:"my.counter.attr"  value:{string_value:"some value"}}  start_time_unix_nano:1544712660300000000  time_unix_nano:1544712660300000000  as_double:5}  aggregation_temporality:AGGREGATION_TEMPORALITY_DELTA  is_monotonic:true}}  metrics:{name:"my.gauge"  description:"I am a Gauge"  unit:"1"  gauge:{data_points:{attributes:{key:"my.gauge.attr"  value:{string_value:"some value"}}  time_unix_nano:1544712660300000000  as_double:10}}}  metrics:{name:"my.histogram"  description:"I am a Histogram"  unit:"1"  histogram:{data_points:{attributes:{key:"my.histogram.attr"  value:{string_value:"some value"}}  start_time_unix_nano:1544712660300000000  time_unix_nano:1544712660300000000  count:2  sum:2  bucket_counts:1  bucket_counts:1  explicit_bounds:1  min:0  max:2}  aggregation_temporality:AGGREGATION_TEMPORALITY_DELTA}}}  scope_metrics:{scope:{name:"scope-name"  version:"version"}  metrics:{description:"Description of the metric"  unit:"unit"}  schema_url:"schema_url"}}
-
-
-Parameters:
-Filename: ./client/request_jsons/valid_request.json
-Duration: 300
-Number of Concurrent Requests: 10
-Total Requests: 15748813
-Total Successful Requests: 15748813
+GitCommitSha: 76ccc9e
+BuildTimestamp: 1716194259
+Total Requests: 64338
+Total Successful Requests: 64338
 Total Failed Requests: 0
-First Failed Request:
-Last Failed Request:
+First Failed Request: 
+Last Failed Request: 

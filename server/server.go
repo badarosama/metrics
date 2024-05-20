@@ -42,11 +42,15 @@ type LoggerConfig struct {
 	Level string `mapstructure:"level"`
 }
 
+// Refer to doc: https://grpc.io/docs/guides/keepalive/
+// https://github.com/grpc/grpc-go/blob/master/examples/features/keepalive/server/main.go
 var kaep = keepalive.EnforcementPolicy{
 	MinTime:             5 * time.Second, // If a client pings more than once every 5 seconds, terminate the connection
 	PermitWithoutStream: true,            // Allow pings even when there are no active streams
 }
 
+// Refer to doc: https://grpc.io/docs/guides/keepalive/
+// https://github.com/grpc/grpc-go/blob/master/examples/features/keepalive/server/main.go
 var kasp = keepalive.ServerParameters{
 	MaxConnectionIdle:     15 * time.Second, // If a client is idle for 15 seconds, send a GOAWAY
 	MaxConnectionAge:      30 * time.Second, // If any connection is alive for more than 30 seconds, send a GOAWAY
@@ -59,12 +63,12 @@ func loadConfig(path string) (LoggerConfig, error) {
 	// Load configuration from file
 	viper.SetConfigFile(path)
 	if err := viper.ReadInConfig(); err != nil {
-		panic(err)
+		return LoggerConfig{}, err
 	}
 	// Unmarshal configuration into struct
 	var loggerConfig LoggerConfig
 	if err := viper.Unmarshal(&loggerConfig); err != nil {
-		panic(err)
+		return LoggerConfig{}, err
 	}
 
 	return loggerConfig, nil
@@ -120,10 +124,14 @@ func configureLogger() *zap.Logger {
 	}
 
 	// Initialize logger based on configuration
-	loggerConfig, _ := loadConfig(pathOfConfigFile)
+	loggerConfig, err := loadConfig(pathOfConfigFile)
+	if err != nil {
+		log.Fatalf("Failed to load configs: %v", err)
+	}
+
 	logger, err := initLogger(loggerConfig)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create logger: %v", err)
 	}
 
 	return logger
@@ -136,27 +144,31 @@ func main() {
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		logger.Error("Failed to listen", zap.Error(err))
+		logger.Fatal("Failed to listen", zap.Error(err))
 	}
 
 	serverCert, certPool := getServerCertAndPool()
-	// configuration of the certificate what we want to
+	// configuration of the certificates
 	conf := &tls.Config{
 		Certificates: []tls.Certificate{serverCert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
 	}
+
 	tlsCredentials := credentials.NewTLS(conf)
 	s := grpc.NewServer(
 		grpc.Creds(tlsCredentials),
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
-		grpc.ChainUnaryInterceptor(UnaryInterceptorPrometheus,
+		grpc.ChainUnaryInterceptor(
+			// Custom unary interceptor defined in middleware.go
+			UnaryInterceptorPrometheus,
+			// Recovery interceptor to handle panics
 			grpcmiddleware.ChainUnaryServer(
 				grpcrecovery.UnaryServerInterceptor(),
 			)),
 	)
-	// Initialize the server struct with the logger
+	// Initialize the server struct with the logger and cache.
 	srv := &server{
 		logger:                 logger,
 		lastErrorRequests:      NewCircularQueue(cacheSize),
@@ -167,6 +179,7 @@ func main() {
 	pv.RegisterVersionServiceServer(s, srv)
 	reflection.Register(s)
 
+	// Register prometheus for instrumentation.
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		http.ListenAndServe(":9091", nil)
@@ -174,6 +187,6 @@ func main() {
 
 	logger.Info("Server is listening on port 8080...")
 	if err := s.Serve(listener); err != nil {
-		logger.Error("Failed to serve", zap.Error(err))
+		logger.Fatal("Failed to serve", zap.Error(err))
 	}
 }

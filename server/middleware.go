@@ -62,6 +62,7 @@ func UnaryInterceptorPrometheus(
 
 	code := status.Code(err).String()
 
+	// https://prometheus.io/docs/prometheus/latest/getting_started/
 	// Record the metrics
 	requestCount.WithLabelValues(info.FullMethod, clientAddr, code).Inc()
 	requestDuration.WithLabelValues(info.FullMethod).Observe(duration)

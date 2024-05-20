@@ -5,6 +5,8 @@ import (
 	v1 "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"metrics/server/pb/pv"
 	"metrics/server/version"
@@ -33,9 +35,8 @@ func (s *server) Export(ctx context.Context,
 	var errorMessage string
 	rejectedDataPoints := 0
 
-	// Helper function to check if a metric is empty:
-	// Other checks can also be added for error checking
-	// based on requirements.
+	// Helper function to check if a metric is empty.
+	// Note: based on requirements, we can check a lot more cases for partial errors. Currently, there are some basic checks.
 	isEmptyMetric := func(metric *v1.Metric) bool {
 		return metric.Name == "" || metric.Description == "" || metric.Unit == "" || metric.Data == nil
 	}
@@ -79,7 +80,12 @@ func (s *server) Export(ctx context.Context,
 // GetVersion retrieves the current version information. This method takes no parameters and returns a VersionResponse
 // message containing version information such as the build timestamp and Git commit SHA.
 func (s *server) GetVersion(context.Context, *emptypb.Empty) (*pv.VersionResponse, error) {
-	commitSha, timestamp := version.BuildVersion()
+	commitSha, timestamp, err := version.BuildVersion()
+	if err != nil {
+		s.logger.Error("Failed to retrieve version information", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to retrieve version information: %v", err)
+	}
+
 	s.logger.Debug("GetVersion method called")
 	return &pv.VersionResponse{
 		BuildTimestamp: timestamp,

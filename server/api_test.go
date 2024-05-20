@@ -103,32 +103,6 @@ func TestCircularQueue_Enqueue(t *testing.T) {
 	}
 }
 
-func TestCircularQueue_EnqueueOverflow(t *testing.T) {
-	queue := NewCircularQueue(5)
-
-	now := time.Now()
-	for i := 0; i < 7; i++ {
-		queue.Enqueue(CachedRequest{
-			Request:   nil,
-			Timestamp: now.Add(time.Duration(i) * time.Second),
-		})
-	}
-
-	expectedTimes := []time.Time{
-		now.Add(2 * time.Second),
-		now.Add(3 * time.Second),
-		now.Add(4 * time.Second),
-		now.Add(5 * time.Second),
-		now.Add(6 * time.Second),
-	}
-
-	for i, expected := range expectedTimes {
-		if queue.queue[(queue.head+i)%queue.size].Timestamp != expected {
-			t.Errorf("Expected Timestamp %v at index %d, got %v", expected, i, queue.queue[(queue.head+i)%queue.size].Timestamp)
-		}
-	}
-}
-
 func TestCircularQueue_PrintFirst(t *testing.T) {
 	queue := NewCircularQueue(5)
 

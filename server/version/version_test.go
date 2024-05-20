@@ -47,7 +47,7 @@ func TestBuildVersion(t *testing.T) {
 	wantVersion := "test_commit"
 	wantTimestamp := int64(1716124657)
 
-	version, timestamp := BuildVersion()
+	version, timestamp, _ := BuildVersion()
 
 	if version != wantVersion {
 		t.Errorf("BuildVersion() version = %v, want %v", version, wantVersion)

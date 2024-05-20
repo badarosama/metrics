@@ -12,12 +12,13 @@ type CachedRequest struct {
 	Timestamp time.Time
 }
 
+// CircularQueue is a thread-safe circular queue that holds CachedRequest elements
 type CircularQueue struct {
-	queue []CachedRequest
-	size  int
-	head  int
-	tail  int
-	mutex sync.Mutex
+	queue []CachedRequest // The queue slice holding the CachedRequests
+	size  int             // The size of the queue
+	head  int             // The index of the head of the queue
+	tail  int             // The index of the tail of the queue
+	mutex sync.Mutex      // A mutex to ensure thread-safety
 }
 
 func NewCircularQueue(size int) *CircularQueue {
@@ -27,6 +28,8 @@ func NewCircularQueue(size int) *CircularQueue {
 	}
 }
 
+// Enqueue adds a new CachedRequest to the queue
+// If the queue is full, it will overwrite the oldest element
 func (q *CircularQueue) Enqueue(request CachedRequest) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()

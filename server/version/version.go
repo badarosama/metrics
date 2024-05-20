@@ -19,7 +19,10 @@ func convertToTimestamp(date string) (timestamp int64, err error) {
 	timestamp = t.Unix()
 	return
 }
-func BuildVersion() (string, int64) {
-	timestamp, _ := convertToTimestamp(BuildTimestamp)
-	return CommitHash, timestamp
+func BuildVersion() (string, int64, error) {
+	timestamp, err := convertToTimestamp(BuildTimestamp)
+	if err != nil {
+		return "", 0, err
+	}
+	return CommitHash, timestamp, nil
 }
