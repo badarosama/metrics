@@ -103,43 +103,26 @@ func TestCircularQueue_Enqueue(t *testing.T) {
 	}
 }
 
-func TestCircularQueue_PrintFirst(t *testing.T) {
-	queue := NewCircularQueue(5)
+func TestCircularQueue_EnqueueOverflow(t *testing.T) {
+	queue := NewCircularQueue(3)
 
 	now := time.Now()
-	queue.Enqueue(CachedRequest{
-		Request:   nil,
-		Timestamp: now,
-	})
-
-	// Simply call the PrintFirst method and ensure it doesn't panic.
-	queue.PrintFirst()
-}
-
-func TestCircularQueue_PrintLast(t *testing.T) {
-	queue := NewCircularQueue(5)
-
-	now := time.Now()
-	queue.Enqueue(CachedRequest{
-		Request:   nil,
-		Timestamp: now,
-	})
-
-	// Simply call the PrintLast method and ensure it doesn't panic.
-	queue.PrintLast()
-}
-
-func TestCircularQueue_PrintAll(t *testing.T) {
-	queue := NewCircularQueue(5)
-
-	now := time.Now()
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 4; i++ {
 		queue.Enqueue(CachedRequest{
 			Request:   nil,
 			Timestamp: now.Add(time.Duration(i) * time.Second),
 		})
 	}
 
-	// Simply call the PrintAll method and ensure it doesn't panic.
-	queue.PrintAll()
+	expectedTimes := []time.Time{
+		now.Add(3 * time.Second),
+		now.Add(1 * time.Second),
+		now.Add(2 * time.Second),
+	}
+	// Assert that the queue contains the expected timestamps
+	for i := 0; i < len(expectedTimes); i++ {
+		if !queue.queue[i].Timestamp.Equal(expectedTimes[i]) {
+			t.Errorf("Expected timestamp %s at index %d, got %s", expectedTimes[i], i, queue.queue[i].Timestamp)
+		}
+	}
 }
