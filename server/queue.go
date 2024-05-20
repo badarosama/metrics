@@ -1,9 +1,11 @@
 package main
 
 import (
-	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
-	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
+
+	pb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 )
 
 type CachedRequest struct {
@@ -15,9 +17,8 @@ type CachedRequest struct {
 type CircularQueue struct {
 	queue []CachedRequest // The queue slice holding the CachedRequests
 	size  int             // The size of the queue
-	head  int             // The index of the head of the queue
-	tail  int             // The index of the tail of the queue
-	mutex sync.Mutex      // A mutex to ensure thread-safety
+	head  int32           // The index of the head of the queue
+	tail  int32           // The index of the tail of the queue
 }
 
 func NewCircularQueue(size int) *CircularQueue {
@@ -30,15 +31,16 @@ func NewCircularQueue(size int) *CircularQueue {
 // Enqueue adds a new CachedRequest to the queue
 // If the queue is full, it will overwrite the oldest element
 func (q *CircularQueue) Enqueue(request CachedRequest) {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
+	tail := atomic.LoadInt32(&q.tail)
+	head := atomic.LoadInt32(&q.head)
 
 	// Adjust head if the queue is full
-	if (q.tail+1)%q.size == q.head {
+	if (tail+1)%int32(q.size) == head {
 		// Queue is full, dequeue one element
-		q.head = (q.head + 1) % q.size
+		atomic.StoreInt32(&q.head, (head+1)%int32(q.size))
 	}
 
-	q.queue[q.tail] = request
-	q.tail = (q.tail + 1) % q.size
+	// Use unsafe.Pointer to atomically store the request
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&q.queue[tail])), unsafe.Pointer(&request))
+	atomic.StoreInt32(&q.tail, (tail+1)%int32(q.size))
 }

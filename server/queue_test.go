@@ -1,41 +1,53 @@
 package main
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
+	"unsafe"
 )
 
-func TestCircularQueueOverwrite(t *testing.T) {
-	// Create a new circular queue with a fixed size of 10
-	queue := NewCircularQueue(10)
+func TestCircularQueue_Enqueue(t *testing.T) {
+	queue := NewCircularQueue(5)
 
-	// Enqueue 15 elements with timestamps
-	for i := 0; i < 15; i++ {
-		request := CachedRequest{
-			Request:   nil, // Dummy request
-			Timestamp: time.Now(),
-		}
-		queue.Enqueue(request)
+	now := time.Now()
+	for i := 0; i < 5; i++ {
+		queue.Enqueue(CachedRequest{
+			Request:   nil,
+			Timestamp: now.Add(time.Duration(i) * time.Second),
+		})
 	}
 
-	// Check the contents of the queue
-	expectedLength := 10
-	if len(queue.queue) != expectedLength {
-		t.Errorf("Expected queue length %d, got %d", expectedLength, len(queue.queue))
-	}
-
-	// Check that the timestamps in the queue are in the expected order (oldest overwritten)
-	oldestTimestamp := queue.queue[0].Timestamp
-	for i := 1; i < len(queue.queue); i++ {
-		if queue.queue[i].Timestamp.Before(oldestTimestamp) {
-			oldestTimestamp = queue.queue[i].Timestamp
+	// Check if the internal queue has 5 elements with the correct timestamps
+	for i := 0; i < 5; i++ {
+		req := (*CachedRequest)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&queue.queue[i]))))
+		if req.Timestamp != now.Add(time.Duration(i)*time.Second) {
+			t.Errorf("Expected Timestamp %v at index %d, got %v", now.Add(time.Duration(i)*time.Second), i, req.Timestamp)
 		}
 	}
+}
 
-	// Now compare the timestamps with the oldestTimestamp
-	for i := 1; i < len(queue.queue); i++ {
-		if queue.queue[i].Timestamp.Before(oldestTimestamp) {
-			t.Errorf("Elements in the queue are not overwritten properly")
+func TestCircularQueue_EnqueueOverflow(t *testing.T) {
+	queue := NewCircularQueue(3)
+
+	now := time.Now()
+	for i := 0; i < 4; i++ {
+		queue.Enqueue(CachedRequest{
+			Request:   nil,
+			Timestamp: now.Add(time.Duration(i) * time.Second),
+		})
+	}
+
+	expectedTimes := []time.Time{
+		now.Add(3 * time.Second),
+		now.Add(1 * time.Second),
+		now.Add(2 * time.Second),
+	}
+	// Assert that the queue contains the expected timestamps in the correct order after overflow
+	for i := 0; i < len(expectedTimes); i++ {
+		req := (*CachedRequest)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&queue.queue[i]))))
+		if !req.Timestamp.Equal(expectedTimes[i]) {
+			t.Errorf("Expected timestamp %s at index %d, got %s", expectedTimes[i], i, req.Timestamp)
 		}
 	}
 }
