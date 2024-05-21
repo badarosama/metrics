@@ -1,10 +1,8 @@
 package main
 
 import (
-	"sync/atomic"
 	"testing"
 	"time"
-	"unsafe"
 )
 
 func TestCircularQueue_Enqueue(t *testing.T) {
@@ -18,11 +16,13 @@ func TestCircularQueue_Enqueue(t *testing.T) {
 		})
 	}
 
-	// Check if the internal queue has 5 elements with the correct timestamps
+	if len(queue.queue) != 5 {
+		t.Errorf("Expected queue length 5, got %d", len(queue.queue))
+	}
+
 	for i := 0; i < 5; i++ {
-		req := (*CachedRequest)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&queue.queue[i]))))
-		if req.Timestamp != now.Add(time.Duration(i)*time.Second) {
-			t.Errorf("Expected Timestamp %v at index %d, got %v", now.Add(time.Duration(i)*time.Second), i, req.Timestamp)
+		if queue.queue[i].Timestamp != now.Add(time.Duration(i)*time.Second) {
+			t.Errorf("Expected Timestamp %v at index %d, got %v", now.Add(time.Duration(i)*time.Second), i, queue.queue[i].Timestamp)
 		}
 	}
 }
@@ -43,11 +43,10 @@ func TestCircularQueue_EnqueueOverflow(t *testing.T) {
 		now.Add(1 * time.Second),
 		now.Add(2 * time.Second),
 	}
-	// Assert that the queue contains the expected timestamps in the correct order after overflow
+	// Assert that the queue contains the expected timestamps
 	for i := 0; i < len(expectedTimes); i++ {
-		req := (*CachedRequest)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&queue.queue[i]))))
-		if !req.Timestamp.Equal(expectedTimes[i]) {
-			t.Errorf("Expected timestamp %s at index %d, got %s", expectedTimes[i], i, req.Timestamp)
+		if !queue.queue[i].Timestamp.Equal(expectedTimes[i]) {
+			t.Errorf("Expected timestamp %s at index %d, got %s", expectedTimes[i], i, queue.queue[i].Timestamp)
 		}
 	}
 }
